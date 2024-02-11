@@ -1,7 +1,7 @@
 import logging
 from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
-from backend.api import users, profile, follow, task, posts, auth
+from backend.api import users, profile, follow, task, posts, auth, ping
 
 class Server:
     def __init__(self):
@@ -18,6 +18,7 @@ class Server:
     def register_routes(self):
         self.app.route('/assets/<path:filename>')(self.serve_static)
         self.app.route('/storage/<path:filename>')(self.serve_image)
+        self.app.register_blueprint(ping.ping_bp)
         self.app.register_blueprint(users.users_bp)
         self.app.register_blueprint(profile.profile_bp)
         self.app.register_blueprint(follow.follow_bp)
