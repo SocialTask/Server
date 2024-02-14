@@ -12,7 +12,7 @@ from werkzeug.utils import secure_filename
 import backend.config
 import random
 import string
-import cv2
+import subprocess
 
 # Define a list of allowed image file extensions
 ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'mp4', 'mov', 'avi'}
@@ -115,39 +115,34 @@ def generate_video_thumbnail(video_path):
             print("El archivo de video no existe.")
             return None
 
-        output_thumbnail_path = os.path.join(os.path.dirname(video_path), 
-                                             os.path.splitext(os.path.basename(video_path))[0] + '_thumbnail.jpg')
+        output_thumbnail_path = os.path.join(os.path.dirname(video_path), os.path.splitext(os.path.basename(video_path))[0] + '_thumbnail.jpg')
 
-        # Abrir el archivo de video
-        video_capture = cv2.VideoCapture(video_path)
+        # Comando FFmpeg para obtener una miniatura del video
+        command = [
+            'ffmpeg',
+            '-i', video_path,
+            '-ss', '00:00:00',     # Obtener el cuadro a 1 segundo
+            '-vframes', '1',       # Obtener solo 1 cuadro
+            '-vf', 'scale=-2:1000',  # Escalar a 1000px de altura
+            output_thumbnail_path
+        ]
 
-        # Obtener el cuadro a 1 segundo
-        video_capture.set(cv2.CAP_PROP_POS_MSEC, 1000)
-        
-        # Leer el cuadro
-        success, frame = video_capture.read()
+        # Ejecutar el comando FFmpeg
+        subprocess.run(command, check=True)
 
-        if success:
-            # Escalar el cuadro a 1000px de altura
-            height, width, _ = frame.shape
-            aspect_ratio = width / height
-            new_height = 1000
-            new_width = int(new_height * aspect_ratio)
-            frame = cv2.resize(frame, (new_width, new_height))
+        print(f"Miniatura de video generada y guardada en: {output_thumbnail_path}")
 
-            # Guardar el cuadro como miniatura
-            cv2.imwrite(output_thumbnail_path, frame)
-
-            print(f"Miniatura de video generada y guardada en: {output_thumbnail_path}")
-
-            return output_thumbnail_path
-        else:
-            print("Error al leer el cuadro del video.")
-            return None
-
+        return output_thumbnail_path
+    except FileNotFoundError:
+        print("No se pudo encontrar el archivo de video.")
+    except PermissionError:
+        print("No se tienen permisos suficientes para acceder al archivo de video o escribir la miniatura.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error al generar la miniatura del video: {e}")
     except Exception as e:
         print(f"Error inesperado al generar la miniatura del video: {e}")
-        return None
+
+    return None
 
 @posts_bp.route('/posts', methods=['GET'])
 @token_required
