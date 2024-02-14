@@ -13,6 +13,7 @@ import backend.config
 import random
 import string
 import subprocess
+import backend.config
 
 # Define a list of allowed image file extensions
 ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'mp4', 'mov', 'avi'}
@@ -115,11 +116,12 @@ def generate_video_thumbnail(video_path):
             print("El archivo de video no existe.")
             return None
 
-        output_thumbnail_path = os.path.join(os.path.dirname(video_path), os.path.splitext(os.path.basename(video_path))[0] + '_thumbnail.jpg')
+        output_thumbnail_path = os.path.join(os.path.dirname(video_path), 
+                                             os.path.splitext(os.path.basename(video_path))[0] + '_thumbnail.jpg')
 
         # Comando FFmpeg para obtener una miniatura del video
         command = [
-            './ffmpeg/ffmpeg',
+            backend.config.FFMPEG_PATH,
             '-i', video_path,
             '-ss', '00:00:00',     # Obtener el cuadro a 1 segundo
             '-vframes', '1',       # Obtener solo 1 cuadro
@@ -128,7 +130,7 @@ def generate_video_thumbnail(video_path):
         ]
 
         # Ejecutar el comando FFmpeg
-        subprocess.run(command, check=True)
+        process = subprocess.run(command, check=True, stderr=subprocess.PIPE)
 
         print(f"Miniatura de video generada y guardada en: {output_thumbnail_path}")
 
@@ -139,6 +141,7 @@ def generate_video_thumbnail(video_path):
         print("No se tienen permisos suficientes para acceder al archivo de video o escribir la miniatura.")
     except subprocess.CalledProcessError as e:
         print(f"Error al generar la miniatura del video: {e}")
+        print(f"Salida de error de FFmpeg: {process.stderr.decode()}")
     except Exception as e:
         print(f"Error inesperado al generar la miniatura del video: {e}")
 

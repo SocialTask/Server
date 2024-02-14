@@ -1,4 +1,7 @@
 # RENAME THIS TO CONFIG.PY
+
+FFMPEG_PATH = "" # Your FFMPEG Path
+
 # Database Configuration
 DATABASE_CONFIG = {
     "host": "",
