@@ -1,3 +1,4 @@
+# RENAME THIS TO CONFIG.PY
 # Database Configuration
 DATABASE_CONFIG = {
     "host": "",
