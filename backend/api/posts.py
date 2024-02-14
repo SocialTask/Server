@@ -12,7 +12,7 @@ from werkzeug.utils import secure_filename
 import backend.config
 import random
 import string
-import subprocess
+import cv2
 
 # Define a list of allowed image file extensions
 ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'mp4', 'mov', 'avi'}
@@ -82,12 +82,7 @@ def create_post():
                 video_path = os.path.join(video_upload_folder, unique_filename)
                 media_file.save(video_path)
 
-                print("Conversion Start")
-
-                # Convertir video a 720p, 2000 kbps, ultra-rápido, audio a 96 kbps
-                converted_video_path = convert_video(video_path)
-
-                video_url = f"{backend.config.BASE_URL}{converted_video_path.split('backend')[-1]}"
+                video_url = f"{backend.config.BASE_URL}{video_path.split('backend')[-1]}"
 
                                 # Generar imagen de video
                 video_thumbnail_path = generate_video_thumbnail(video_path)
@@ -114,40 +109,6 @@ def create_post():
         logging.error(f"Error creating post: {str(e)}")
         return error_response('Failed to create post', 500)
 
-def convert_video(input_path):
-    try:
-        if not os.path.isfile(input_path):
-            print("El archivo de entrada no existe.")
-            return None
-
-        output_path = os.path.splitext(input_path)[0] + '_converted.mp4'
-
-        # Comando FFmpeg para redimensionar el video a 720p y establecer la tasa de bits de video y audio
-        command = [
-            './ffmpeg/ffmpeg',
-            '-i', input_path,
-            '-vf', 'scale=-2:720',       # Resize while maintaining aspect ratio to 720p height
-            '-c:v', 'libx264',           # Video codec: H.264
-            '-crf', '23',                # Adjust CRF for better quality
-            '-preset', 'slow',           # Slower preset for better compression efficiency
-            '-b:a', '96k',               # Increase audio bitrate for better quality
-            '-c:a', 'aac',               # Audio codec: AAC
-            output_path
-        ]
-
-        # Ejecutar el comando FFmpeg
-        subprocess.run(command, check=True)
-
-        print(f"Video convertido guardado en: {output_path}")
-
-        return output_path
-    except subprocess.CalledProcessError as e:
-        print(f"Error en la conversión de video: {e}")
-        return None
-    except Exception as e:
-        print(f"Error inesperado en la conversión de video: {e}")
-        return None
-
 def generate_video_thumbnail(video_path):
     try:
         if not os.path.isfile(video_path):
@@ -157,32 +118,36 @@ def generate_video_thumbnail(video_path):
         output_thumbnail_path = os.path.join(os.path.dirname(video_path), 
                                              os.path.splitext(os.path.basename(video_path))[0] + '_thumbnail.jpg')
 
-        # Comando FFmpeg para obtener una miniatura del video
-        command = [
-            'ffmpeg',
-            '-i', video_path,
-            '-ss', '00:00:00',     # Obtener el cuadro a 1 segundo
-            '-vframes', '1',       # Obtener solo 1 cuadro
-            '-vf', 'scale=-2:1000',  # Escalar a 1000px de altura
-            output_thumbnail_path
-        ]
+        # Abrir el archivo de video
+        video_capture = cv2.VideoCapture(video_path)
 
-        # Ejecutar el comando FFmpeg
-        subprocess.run(command, check=True)
+        # Obtener el cuadro a 1 segundo
+        video_capture.set(cv2.CAP_PROP_POS_MSEC, 1000)
+        
+        # Leer el cuadro
+        success, frame = video_capture.read()
 
-        print(f"Miniatura de video generada y guardada en: {output_thumbnail_path}")
+        if success:
+            # Escalar el cuadro a 1000px de altura
+            height, width, _ = frame.shape
+            aspect_ratio = width / height
+            new_height = 1000
+            new_width = int(new_height * aspect_ratio)
+            frame = cv2.resize(frame, (new_width, new_height))
 
-        return output_thumbnail_path
-    except FileNotFoundError:
-        print("No se pudo encontrar el archivo de video.")
-    except PermissionError:
-        print("No se tienen permisos suficientes para acceder al archivo de video o escribir la miniatura.")
-    except subprocess.CalledProcessError as e:
-        print(f"Error al generar la miniatura del video: {e}")
+            # Guardar el cuadro como miniatura
+            cv2.imwrite(output_thumbnail_path, frame)
+
+            print(f"Miniatura de video generada y guardada en: {output_thumbnail_path}")
+
+            return output_thumbnail_path
+        else:
+            print("Error al leer el cuadro del video.")
+            return None
+
     except Exception as e:
         print(f"Error inesperado al generar la miniatura del video: {e}")
-
-    return None
+        return None
 
 @posts_bp.route('/posts', methods=['GET'])
 @token_required
