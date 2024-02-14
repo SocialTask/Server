@@ -119,7 +119,7 @@ def generate_video_thumbnail(video_path):
 
         # Comando FFmpeg para obtener una miniatura del video
         command = [
-            'ffmpeg',
+            'ffmpeg/ffmpeg',
             '-i', video_path,
             '-ss', '00:00:00',     # Obtener el cuadro a 1 segundo
             '-vframes', '1',       # Obtener solo 1 cuadro
