@@ -1,6 +1,8 @@
 # RENAME THIS TO CONFIG.PY
 
 FFMPEG_PATH = "" # Your FFMPEG Path
+HOST = "0.0.0.0" # Your Server IP Default: 0.0.0.0
+PORT = 80 # Your Server Port
 
 # Database Configuration
 DATABASE_CONFIG = {
